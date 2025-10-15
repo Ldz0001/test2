@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Event Operations BI — Lavender</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Leaflet Map -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <!-- Icon font -->
+  <link href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" rel="stylesheet">
+  <!-- Day.js -->
+  <script src="https://unpkg.com/dayjs@1.11.11/dayjs.min.js"></script>
+  <script src="https://unpkg.com/dayjs@1.11.11/plugin/customParseFormat.js"></script>
+  <script>dayjs.extend(dayjs_plugin_customParseFormat)</script>
+
+  <style>
+    /* =========================
+       LAVENDER THEME
+       ========================= */
+    :root{
+      --bg: #161226;            /* deep indigo */
+      --bg-2:#1c1533;
+      --panel:#221a44;          /* panel violet */
+      --card:#1b1437;           /* card base */
+      --border:#3f3cbb;         /* indigo-600 */
+      --glow:#7c3aed22;         /* violet glow */
+      --text:#f5f3ff;           /* lavender-50 */
+      --muted:#d6d3ef;          /* lavender-200 */
+      --accent:#a78bfa;         /* violet-400 */
+      --accent-2:#7c3aed;       /* violet-600 */
+      --accent-3:#c4b5fd;       /* violet-300 */
+      --success:#34d399;        /* teal-400 */
+      --warning:#f59e0b;        /* amber-500 */
+      --danger:#ef4444;         /* red-500 */
+      --overlay: linear-gradient(120deg, #2a215c 0%, #201a4d 40%, #1a163b 100%);
+    }
+
+    *{ box-sizing: border-box }
+    html,body{ margin:0; height:100% }
+    body{
+      background:
+        radial-gradient(900px 500px at -150px -200px, #7c3aed22, transparent 60%),
+        radial-gradient(1000px 600px at 120% -100px, #a78bfa1a, transparent 60%),
+        var(--overlay), var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans";
+      line-height: 1.45;
+      letter-spacing: .2px;
+    }
+
+    /* Header + Tabs */
+    header{
+      position: sticky; top:0; z-index:20;
+      backdrop-filter: blur(10px);
+      background: linear-gradient(180deg, #1d1739cc, #1d173980);
+      border-bottom: 1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 14px 18px;
+    }
+    header h1{ margin:0; font-size:18px; font-weight:800; letter-spacing:.4px }
+    .tabs{ display:flex; gap:8px; flex-wrap:wrap }
+    .tab-btn{
+      background: #1c1637; color: var(--text);
+      border:1px solid #4f46e5; border-color: #4f46e555;
+      padding:8px 12px; font-size:13px; border-radius:12px; cursor:pointer;
+      box-shadow: inset 0 0 0 1px #ffffff10, 0 1px 0 #00000050;
+      transition: transform .06s ease, box-shadow .12s ease, border-color .12s ease, background .12s ease;
+    }
+    .tab-btn:hover{ border-color:#7c3aedaa; box-shadow: inset 0 0 0 1px #ffffff18, 0 4px 14px #7c3aed22; transform: translateY(-1px)}
+    .tab-btn.active{ background:#251c4f; border-color:#7c3aed; box-shadow: inset 0 0 0 1px #ffffff20, 0 6px 22px #7c3aed33 }
+
+    main{ padding:18px; max-width:1300px; margin:0 auto 56px }
+
+    /* Cards + Grid */
+    .card{
+      background:
+        radial-gradient(800px 400px at -180px -220px, var(--glow), transparent 60%),
+        linear-gradient(180deg, #1a153a, #150f2b);
+      border:1px solid var(--border);
+      border-radius:16px; padding:14px;
+      box-shadow: 0 8px 28px #00000055, inset 0 1px 0 #ffffff05;
+    }
+    .grid{ display:grid; gap:12px }
+    .grid.kpi{ grid-template-columns: repeat(4, minmax(0, 1fr)) }
+    @media (max-width:1000px){ .grid.kpi{ grid-template-columns: repeat(2,1fr)} }
+    @media (max-width:580px){ .grid.kpi{ grid-template-columns: 1fr } }
+    .card h3{ margin:0 0 6px; font-size:14px; color: var(--muted); font-weight:700; }
+    .kpi .value{ font-size:34px; font-weight:900; margin-top:6px; color: var(--accent-3); text-shadow: 0 0 8px #a78bfa30 }
+
+    /* Layout helpers */
+    .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+    .spacer{ flex:1 }
+    .two{ display:grid; grid-template-columns: 1.8fr 1.2fr; gap:12px }
+    @media (max-width:1100px){ .two{ grid-template-columns:1fr } }
+
+    /* Inputs / Buttons */
+    input, select, textarea, button{
+      background:#1a1538; color:var(--text); border:1px solid #6d28d966;
+      border-radius:12px; padding:9px 12px; font-size:14px;
+      box-shadow: inset 0 0 0 1px #ffffff10;
+    }
+    input:focus, select:focus, textarea:focus{
+      outline:none; border-color:#a78bfa; box-shadow: 0 0 0 3px #a78bfa33, inset 0 0 0 1px #ffffff18
+    }
+    textarea{ min-height:100px }
+
+    button.primary{ background: linear-gradient(180deg, #4328b8, #34218f); border-color:#7c3aed }
+    button.primary:hover{ box-shadow: 0 6px 20px #7c3aed44 }
+    button.ghost{ background: #1a1530; border-color:#6d28d944 }
+    button.success{ background: linear-gradient(180deg, #256f53, #1b4f3b); border-color:#34d399 }
+    button.danger{ background: linear-gradient(180deg, #6b1f28, #531821); border-color:#ef4444 }
+
+    /* Tables */
+    .table-wrap{ overflow:auto; border-radius:12px; border:1px solid var(--border) }
+    table{ width:100%; border-collapse:collapse }
+    th,td{ padding:10px 12px; border-bottom:1px solid #302b67; font-size:13px }
+    th{ text-align:left; color:#d6d3ef; background:#1a163b; position:sticky; top:0; z-index:1 }
+    tr:hover td{ background:#211a4b }
+
+    /* Status / Pills */
+    .status{ padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid #6d28d955 }
+    .s-planning{ background:#291f5f; color:#c4b5fd }
+    .s-executing{ background:#1f215f; color:#a5b4fc }
+    .s-completed{ background:#1c2f2a; color:#86efac; border-color:#34d39966 }
+    .s-overdue{ background:#3a1820; color:#fecaca; border-color:#ef444466 }
+    .pill{ padding:3px 8px; border-radius:999px; border:1px solid #6d28d955; font-size:12px; background:#241d50; color:#ddd5ff }
+
+    .muted{ color:var(--muted) }
+    .hr{ height:1px; background:#3f3cbb88; margin:12px 0 }
+    .legend{ display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+    .legend span{ display:inline-flex; gap:6px; align-items:center }
+    .small{ font-size:12px; color:var(--muted) }
+    .kbd{ background:#231d52; border:1px solid #6d28d966; border-bottom-width:2px; padding:2px 6px; border-radius:6px; font-size:12px }
+
+    /* Map */
+    .map{ height:420px; border-radius:12px; border:1px solid var(--border); overflow:hidden }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Event Operations BI</h1>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+    <button class="tab-btn" data-tab="events">Events</button>
+    <button class="tab-btn" data-tab="tasks">Tasks</button>
+    <button class="tab-btn" data-tab="notes">Post-Event Notes</button>
+    <button class="tab-btn" data-tab="map">Map</button>
+    <button class="tab-btn" data-tab="settings">Settings</button>
+  </div>
+</header>
+
+<main>
+  <!-- DASHBOARD -->
+  <section id="dashboard" class="tab card">
+    <div class="grid kpi">
+      <div class="card kpi"><h3>Upcoming Events</h3><div class="value" id="kpiUpcoming">0</div></div>
+      <div class="card kpi"><h3>Tasks Completion %</h3><div class="value" id="kpiCompletion">0%</div></div>
+      <div class="card kpi"><h3>Overdue Tasks</h3><div class="value" id="kpiOverdue">0</div></div>
+      <div class="card kpi"><h3>Average Rating</h3><div class="value" id="kpiRating">0.0</div></div>
+    </div>
+
+    <div class="hr"></div>
+    <div class="two">
+      <div class="card">
+        <div class="row">
+          <h3>Active Tasks</h3>
+          <div class="spacer"></div>
+          <div class="legend small">
+            <span><span class="status s-overdue"></span> Overdue</span>
+            <span><span class="status s-executing"></span> In Progress</span>
+            <span><span class="status s-completed"></span> Completed</span>
+          </div>
+        </div>
+        <div class="table-wrap"><table id="tblDashTasks"><thead><tr>
+          <th>Task</th><th>Event</th><th>Assigned</th><th>Due</th><th>Status</th><th>Actions</th>
+        </tr></thead><tbody></tbody></table></div>
+      </div>
+      <div class="card">
+        <div class="row"><h3>Filters</h3><div class="spacer"></div>
+          <button class="ghost" id="btnClearFilters"><i class="ph ph-funnel"></i> Clear</button>
+        </div>
+        <div class="grid" style="grid-template-columns: repeat(2,1fr); gap:8px;">
+          <div><div class="small">Search</div><input id="fSearch" placeholder="Search event/task..." /></div>
+          <div><div class="small">Event Type</div>
+            <select id="fType">
+              <option value="">All</option>
+              <option>Wedding</option><option>Baptism</option><option>Party</option>
+            </select>
+          </div>
+          <div><div class="small">Status</div>
+            <select id="fStatus">
+              <option value="">All</option>
+              <option>Planning</option><option>Executing</option><option>Completed</option>
+            </select>
+          </div>
+          <div><div class="small">Date From</div><input id="fFrom" type="date"></div>
+          <div><div class="small">Date To</div><input id="fTo" type="date"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EVENTS -->
+  <section id="events" class="tab card" style="display:none;">
+    <div class="row"><h3>Events</h3><div class="spacer"></div>
+      <button class="primary" id="btnAddEvent"><i class="ph ph-plus"></i> Add Event</button>
+    </div>
+    <div class="table-wrap"><table id="tblEvents"><thead><tr>
+      <th>Title</th><th>Type</th><th>Date</th><th>Location</th><th>Status</th><th>Owner</th><th>Lat</th><th>Lon</th><th>Actions</th>
+    </tr></thead><tbody></tbody></table></div>
+
+    <div class="hr"></div>
+    <h3>Event Form</h3>
+    <div class="grid" style="grid-template-columns: repeat(4,1fr); gap:8px;">
+      <input id="eId" type="hidden">
+      <div><div class="small">Title*</div><input id="eTitle" placeholder="e.g., García Baptism"/></div>
+      <div><div class="small">Type*</div>
+        <select id="eType"><option>Wedding</option><option>Baptism</option><option>Party</option></select>
+      </div>
+      <div><div class="small">Date*</div><input id="eDate" type="date"/></div>
+      <div><div class="small">Status*</div>
+        <select id="eStatus"><option>Planning</option><option>Executing</option><option>Completed</option></select>
+      </div>
+      <div><div class="small">City</div><input id="eCity" placeholder="City"/></div>
+      <div><div class="small">State</div><input id="eState" placeholder="State"/></div>
+      <div><div class="small">Owner</div><input id="eOwner" placeholder="owner@yourorg.com"/></div>
+      <div><div class="small">Latitude</div><input id="eLat" type="number" step="any" placeholder="19.4326"/></div>
+      <div><div class="small">Longitude</div><input id="eLon" type="number" step="any" placeholder="-99.1332"/></div>
+    </div>
+    <div class="row" style="margin-top:10px;">
+      <button class="success" id="btnSaveEvent"><i class="ph ph-floppy-disk"></i> Save</button>
+      <button class="ghost" id="btnResetEvent"><i class="ph ph-arrow-counter-clockwise"></i> Reset</button>
+    </div>
+  </section>
+
+  <!-- TASKS -->
+  <section id="tasks" class="tab card" style="display:none;">
+    <div class="row"><h3>Tasks</h3><div class="spacer"></div>
+      <button class="primary" id="btnAddTask"><i class="ph ph-plus"></i> Add Task</button>
+    </div>
+    <div class="table-wrap"><table id="tblTasks"><thead><tr>
+      <th>Task</th><th>Event</th><th>Due</th><th>Assigned</th><th>Status</th><th>Actions</th>
+    </tr></thead><tbody></tbody></table></div>
+
+    <div class="hr"></div>
+    <h3>Task Form</h3>
+    <div class="grid" style="grid-template-columns: repeat(4,1fr); gap:8px;">
+      <input id="tId" type="hidden">
+      <div><div class="small">Event*</div><select id="tEvent"></select></div>
+      <div><div class="small">Title*</div><input id="tTitle" placeholder="e.g., Book photographer"/></div>
+      <div><div class="small">Due Date</div><input id="tDue" type="date"/></div>
+      <div><div class="small">Assigned To</div><input id="tAssigned" placeholder="name or email"/></div>
+      <div><div class="small">Status</div>
+        <select id="tStatus"><option>Not Started</option><option>In Progress</option><option>Completed</option></select>
+      </div>
+      <div style="grid-column: 1/-1;"><div class="small">Notes</div><textarea id="tNotes"></textarea></div>
+    </div>
+    <div class="row" style="margin-top:10px;">
+      <button class="success" id="btnSaveTask"><i class="ph ph-floppy-disk"></i> Save</button>
+      <button class="ghost" id="btnResetTask"><i class="ph ph-arrow-counter-clockwise"></i> Reset</button>
+    </div>
+  </section>
+
+  <!-- NOTES -->
+  <section id="notes" class="tab card" style="display:none;">
+    <div class="row"><h3>Post-Event Notes</h3><div class="spacer"></div>
+      <button class="primary" id="btnAddNote"><i class="ph ph-plus"></i> Add Note</button>
+    </div>
+    <div class="table-wrap"><table id="tblNotes"><thead><tr>
+      <th>Event</th><th>Rating</th><th>Notes</th><th>By</th><th>When</th><th>Actions</th>
+    </tr></thead><tbody></tbody></table></div>
+
+    <div class="hr"></div>
+    <h3>Note Form</h3>
+    <div class="grid" style="grid-template-columns: repeat(4,1fr); gap:8px;">
+      <input id="nId" type="hidden">
+      <div><div class="small">Event*</div><select id="nEvent"></select></div>
+      <div><div class="small">Rating</div>
+        <select id="nRating"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+      </div>
+      <div><div class="small">Created By</div><input id="nBy" placeholder="your name"/></div>
+      <div><div class="small">Created On</div><input id="nOn" type="datetime-local"/></div>
+      <div style="grid-column: 1/-1;"><div class="small">Notes</div><textarea id="nNotes"></textarea></div>
+    </div>
+    <div class="row" style="margin-top:10px;">
+      <button class="success" id="btnSaveNote"><i class="ph ph-floppy-disk"></i> Save</button>
+      <button class="ghost" id="btnResetNote"><i class="ph ph-arrow-counter-clockwise"></i> Reset</button>
+    </div>
+  </section>
+
+  <!-- MAP -->
+  <section id="map" class="tab card" style="display:none;">
+    <div class="row"><h3>Interactive Map (Mexico)</h3><div class="spacer"></div>
+      <div class="small">Markers follow filters from the Dashboard.</div>
+    </div>
+    <div id="leafletMap" class="map"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="settings" class="tab card" style="display:none;">
+    <h3>Settings & Data</h3>
+    <div class="row" style="gap:8px; margin:8px 0 12px;">
+      <button id="btnExport" class="primary"><i class="ph ph-download"></i> Export JSON</button>
+      <label class="pill">Import JSON <input id="fileImport" type="file" accept="application/json" style="display:none;"></label>
+      <button id="btnImport" class="primary"><i class="ph ph-upload"></i> Choose File…</button>
+      <button id="btnSeed" class="ghost"><i class="ph ph-sparkle"></i> Load Demo Data</button>
+      <button id="btnClear" class="danger"><i class="ph ph-trash"></i> Clear All Data</button>
+    </div>
+    <div class="small">
+      Data persists locally in your browser (<code>localStorage</code>). Use Export/Import to share or commit a JSON snapshot in your repo.
+    </div>
+    <div class="hr"></div>
+    <div class="small">
+      Shortcuts: <span class="kbd">E</span> add event, <span class="kbd">T</span> add task, <span class="kbd">N</span> add note, <span class="kbd">/</span> focus search.
+    </div>
+  </section>
+</main>
+
+<script>
+/* =========================
+   DATA LAYER (localStorage)
+   ========================= */
+const LS_KEY = "eventOpsData_v1";
+const store = {
+  data: { events: [], tasks: [], notes: [] },
+  load(){ const raw = localStorage.getItem(LS_KEY); if(raw){ try{ this.data = JSON.parse(raw) }catch(e){} } },
+  save(){ localStorage.setItem(LS_KEY, JSON.stringify(this.data)) },
+  uid(p="id"){ return `${p}_${Math.random().toString(36).slice(2,9)}` },
+
+  upsertEvent(e){ if(!e.id){ e.id=this.uid("evt"); this.data.events.push(e) } else {
+      const i=this.data.events.findIndex(x=>x.id===e.id); if(i>=0)this.data.events[i]=e; else this.data.events.push(e) }
+      this.save()
+  },
+  removeEvent(id){ this.data.tasks = this.data.tasks.filter(t=>t.eventId!==id);
+    this.data.notes = this.data.notes.filter(n=>n.eventId!==id);
+    this.data.events = this.data.events.filter(e=>e.id!==id); this.save()
+  },
+
+  upsertTask(t){ if(!t.id){ t.id=this.uid("tsk"); this.data.tasks.push(t) } else {
+      const i=this.data.tasks.findIndex(x=>x.id===t.id); if(i>=0)this.data.tasks[i]=t; else this.data.tasks.push(t) }
+      this.save()
+  },
+  removeTask(id){ this.data.tasks = this.data.tasks.filter(t=>t.id!==id); this.save() },
+
+  upsertNote(n){ if(!n.id){ n.id=this.uid("nte"); this.data.notes.push(n) } else {
+      const i=this.data.notes.findIndex(x=>x.id===n.id); if(i>=0)this.data.notes[i]=n; else this.data.notes.push(n) }
+      this.save()
+  },
+  removeNote(id){ this.data.notes = this.data.notes.filter(n=>n.id!==id); this.save() },
+};
+
+function seedDemo(){
+  const today=dayjs();
+  const evts=[
+    { id:store.uid("evt"), title:"Martínez Wedding", eventType:"Wedding", eventDate:today.add(30,'day').format("YYYY-MM-DD"),
+      city:"CDMX", state:"CDMX", status:"Planning", owner:"laura@yourorg.com", lat:19.4326, lon:-99.1332 },
+    { id:store.uid("evt"), title:"García Baptism", eventType:"Baptism", eventDate:today.add(18,'day').format("YYYY-MM-DD"),
+      city:"Guadalajara", state:"Jalisco", status:"Planning", owner:"diego@yourorg.com", lat:20.6597, lon:-103.3496 },
+    { id:store.uid("evt"), title:"Fernández Anniversary Party", eventType:"Party", eventDate:today.add(7,'day').format("YYYY-MM-DD"),
+      city:"Monterrey", state:"Nuevo León", status:"Executing", owner:"ana@yourorg.com", lat:25.6866, lon:-100.3161 },
+  ];
+  const tasks=[
+    { id:store.uid("tsk"), eventId:evts[0].id, title:"Confirm venue", dueDate:today.add(3,'day').format("YYYY-MM-DD"),
+      assignedTo:"Carlos", status:"In Progress", completedDate:"", notes:"Awaiting deposit" },
+    { id:store.uid("tsk"), eventId:evts[0].id, title:"Photographer booking", dueDate:today.add(5,'day').format("YYYY-MM-DD"),
+      assignedTo:"Maria", status:"Not Started", completedDate:"", notes:"" },
+    { id:store.uid("tsk"), eventId:evts[1].id, title:"Catering menu", dueDate:today.add(-1,'day').format("YYYY-MM-DD"),
+      assignedTo:"Diego", status:"Not Started", completedDate:"", notes:"" },
+    { id:store.uid("tsk"), eventId:evts[2].id, title:"Hire DJ", dueDate:today.add(2,'day').format("YYYY-MM-DD"),
+      assignedTo:"Ana", status:"Not Started", completedDate:"", notes:"" },
+  ];
+  const notes=[ { id:store.uid("nte"), eventId:evts[0].id, rating:4, notes:"Great vendor alignment. Improve timeline buffer.",
+      createdBy:"Laura", createdOn:today.add(-5,'day').hour(10).minute(30).format("YYYY-MM-DDTHH:mm") } ];
+  store.data = { events:evts, tasks, notes }; store.save();
+}
+
+/* =========================
+   UTIL & STATE
+   ========================= */
+const qs = s => document.querySelector(s);
+const qsa = s => Array.from(document.querySelectorAll(s));
+const state = { filters:{search:"", type:"", status:"", from:"", to:""}, currentTab:"dashboard", map:null, markers:[] };
+function fmtDate(s){ return s ? dayjs(s).format("DD MMM YYYY") : "" }
+function isOverdue(t){ if(t.status==="Completed"||!t.dueDate) return false; return dayjs(t.dueDate).isBefore(dayjs(),"day") }
+
+/* =========================
+   RENDERERS
+   ========================= */
+function renderKPIs(){
+  const today=dayjs();
+  const upcoming = store.data.events.filter(e=>dayjs(e.eventDate).isSameOrAfter(today,"day")).length;
+  const total = store.data.tasks.length||0;
+  const done  = store.data.tasks.filter(t=>t.status==="Completed").length;
+  const comp = total ? Math.round((done/total)*100) : 0;
+  const ratings = store.data.notes.map(n=>Number(n.rating)).filter(n=>!isNaN(n));
+  const avg = ratings.length ? (ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(1) : "0.0";
+  const overdue = store.data.tasks.filter(isOverdue).length;
+
+  qs("#kpiUpcoming").textContent = upcoming;
+  qs("#kpiCompletion").textContent = comp + "%";
+  qs("#kpiOverdue").textContent = overdue;
+  qs("#kpiRating").textContent = avg;
+}
+
+function applyFiltersToEvents(){
+  const f=state.filters;
+  return store.data.events.filter(e=>{
+    if(f.type && e.eventType!==f.type) return false;
+    if(f.status && e.status!==f.status) return false;
+    if(f.search){
+      const s=f.search.toLowerCase();
+      if(!(e.title||"").toLowerCase().includes(s) &&
+         !(e.city||"").toLowerCase().includes(s) &&
+         !(e.state||"").toLowerCase().includes(s)) return false;
+    }
+    if(f.from && dayjs(e.eventDate).isBefore(dayjs(f.from),"day")) return false;
+    if(f.to   && dayjs(e.eventDate).isAfter(dayjs(f.to),"day"))   return false;
+    return true;
+  });
+}
+
+function renderEvents(){
+  const tbody = qs("#tblEvents tbody"); tbody.innerHTML="";
+  const filtered = applyFiltersToEvents();
+  for(const e of filtered){
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td>${e.title}</td>
+      <td><span class="pill">${e.eventType}</span></td>
+      <td>${fmtDate(e.eventDate)}</td>
+      <td>${e.city||""}, ${e.state||""}</td>
+      <td><span class="status ${e.status==='Planning'?'s-planning':e.status==='Executing'?'s-executing':'s-completed'}">${e.status}</span></td>
+      <td>${e.owner||""}</td>
+      <td>${e.lat??""}</td>
+      <td>${e.lon??""}</td>
+      <td class="row">
+        <button class="ghost" onclick="editEvent('${e.id}')" title="Edit"><i class="ph ph-pencil"></i></button>
+        <button class="danger" onclick="delEvent('${e.id}')" title="Delete"><i class="ph ph-trash"></i></button>
+      </td>`;
+    tbody.appendChild(tr);
+  }
+  fillEventSelectors();
+}
+
+function renderTasks(){
+  const tbody = qs("#tblTasks tbody"); tbody.innerHTML="";
+  const fEvIds = applyFiltersToEvents().map(e=>e.id);
+  const tasks = store.data.tasks.filter(t=>fEvIds.includes(t.eventId));
+  for(const t of tasks){
+    const ev = store.data.events.find(e=>e.id===t.eventId);
+    const overdue = isOverdue(t);
+    const stClass = t.status==="Completed"?"s-completed":t.status==="In Progress"?"s-executing":overdue?"s-overdue":"";
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td>${t.title}</td>
+      <td>${ev?ev.title:""}</td>
+      <td>${fmtDate(t.dueDate)}</td>
+      <td>${t.assignedTo||""}</td>
+      <td><span class="status ${stClass}">${overdue?'Overdue':t.status}</span></td>
+      <td class="row">
+        <button class="ghost" onclick="completeTask('${t.id}')" title="Complete"><i class="ph ph-check"></i></button>
+        <button class="ghost" onclick="editTask('${t.id}')" title="Edit"><i class="ph ph-pencil"></i></button>
+        <button class="danger" onclick="delTask('${t.id}')" title="Delete"><i class="ph ph-trash"></i></button>
+      </td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+function renderDashTasks(){
+  const tbody = qs("#tblDashTasks tbody"); tbody.innerHTML="";
+  const fEvIds = applyFiltersToEvents().map(e=>e.id);
+  const tasks = store.data.tasks
+    .filter(t=>fEvIds.includes(t.eventId) && t.status!=="Completed")
+    .sort((a,b)=>(a.dueDate||"9999").localeCompare(b.dueDate||"9999"))
+    .slice(0,12);
+  for(const t of tasks){
+    const ev = store.data.events.find(e=>e.id===t.eventId);
+    const overdue = isOverdue(t);
+    const stClass = t.status==="Completed"?"s-completed":t.status==="In Progress"?"s-executing":overdue?"s-overdue":"";
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td>${t.title}</td>
+      <td>${ev?ev.title:""}</td>
+      <td>${t.assignedTo||""}</td>
+      <td>${fmtDate(t.dueDate)}</td>
+      <td><span class="status ${stClass}">${overdue?'Overdue':t.status}</span></td>
+      <td class="row">
+        <button class="ghost" onclick="completeTask('${t.id}')" title="Complete"><i class="ph ph-check"></i></button>
+        <button class="ghost" onclick="editTask('${t.id}')" title="Edit"><i class="ph ph-pencil"></i></button>
+      </td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+function renderNotes(){
+  const tbody = qs("#tblNotes tbody"); tbody.innerHTML="";
+  const fEvIds = applyFiltersToEvents().map(e=>e.id);
+  const notes = store.data.notes.filter(n=>fEvIds.includes(n.eventId));
+  for(const n of notes){
+    const ev = store.data.events.find(e=>e.id===n.eventId);
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td>${ev?ev.title:""}</td>
+      <td>${n.rating??""}</td>
+      <td>${n.notes||""}</td>
+      <td>${n.createdBy||""}</td>
+      <td>${n.createdOn?dayjs(n.createdOn).format("DD MMM YYYY HH:mm"):""}</td>
+      <td class="row">
+        <button class="ghost" onclick="editNote('${n.id}')" title="Edit"><i class="ph ph-pencil"></i></button>
+        <button class="danger" onclick="delNote('${n.id}')" title="Delete"><i class="ph ph-trash"></i></button>
+      </td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+function fillEventSelectors(){
+  const selTask=qs("#tEvent"), selNote=qs("#nEvent");
+  const evs = store.data.events.slice().sort((a,b)=>a.title.localeCompare(b.title));
+  selTask.innerHTML=""; selNote.innerHTML="";
+  for(const e of evs){
+    const o=document.createElement("option"); o.value=e.id; o.textContent=e.title;
+    const o2=o.cloneNode(true); selTask.appendChild(o); selNote.appendChild(o2);
+  }
+}
+
+/* =========================
+   FILTERS
+   ========================= */
+function onFilterChange(){
+  state.filters = {
+    search: qs("#fSearch").value.trim(),
+    type: qs("#fType").value,
+    status: qs("#fStatus").value,
+    from: qs("#fFrom").value,
+    to: qs("#fTo").value,
+  };
+  renderAll();
+}
+["#fSearch","#fType","#fStatus","#fFrom","#fTo"].forEach(sel=>qs(sel).addEventListener("input", onFilterChange));
+qs("#btnClearFilters").onclick=()=>{ ["fSearch","fType","fStatus","fFrom","fTo"].forEach(id=>qs("#"+id).value=""); onFilterChange() };
+
+/* =========================
+   MAP
+   ========================= */
+function initMap(){
+  if(state.map) return;
+  state.map = L.map('leafletMap').setView([23.6345,-102.5528],5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'&copy; OpenStreetMap'}).addTo(state.map);
+}
+function clearMarkers(){ state.markers.forEach(m=>state.map.removeLayer(m)); state.markers=[] }
+function renderMap(){
+  initMap(); clearMarkers();
+  const evs = applyFiltersToEvents().filter(e=>e.lat && e.lon);
+  evs.forEach(e=>{
+    const m=L.marker([e.lat,e.lon]).addTo(state.map);
+    m.bindPopup(`<b>${e.title}</b><br>${e.eventType} — ${fmtDate(e.eventDate)}<br>${e.city||""}, ${e.state||""}<br>Status: ${e.status}`);
+    state.markers.push(m);
+  });
+  if(evs.length){ const group = new L.featureGroup(state.markers); state.map.fitBounds(group.getBounds().pad(0.2)); }
+}
+
+/* =========================
+   EVENTS ACTIONS
+   ========================= */
+function resetEventForm(){ ["eId","eTitle","eCity","eState","eOwner","eLat","eLon"].forEach(id=>qs("#"+id).value=""); qs("#eType").value="Wedding"; qs("#eStatus").value="Planning"; qs("#eDate").value="" }
+function editEvent(id){
+  const e=store.data.events.find(x=>x.id===id); if(!e) return;
+  qs("#eId").value=e.id; qs("#eTitle").value=e.title||""; qs("#eType").value=e.eventType||"Wedding";
+  qs("#eDate").value=e.eventDate||""; qs("#eStatus").value=e.status||"Planning";
+  qs("#eCity").value=e.city||""; qs("#eState").value=e.state||""; qs("#eOwner").value=e.owner||"";
+  qs("#eLat").value=e.lat??""; qs("#eLon").value=e.lon??"";
+  switchTab("events");
+}
+function delEvent(id){ if(confirm("Delete event and its related tasks & notes?")){ store.removeEvent(id); renderAll() } }
+qs("#btnAddEvent").onclick=()=>{ resetEventForm(); switchTab("events"); qs("#eTitle").focus() }
+qs("#btnSaveEvent").onclick=()=>{
+  const e={
+    id: qs("#eId").value.trim()||null,
+    title: qs("#eTitle").value.trim(),
+    eventType: qs("#eType").value,
+    eventDate: qs("#eDate").value,
+    status: qs("#eStatus").value,
+    city: qs("#eCity").value.trim(),
+    state: qs("#eState").value.trim(),
+    owner: qs("#eOwner").value.trim(),
+    lat: qs("#eLat").value ? Number(qs("#eLat").value) : null,
+    lon: qs("#eLon").value ? Number(qs("#eLon").value) : null,
+  };
+  if(!e.title || !e.eventDate){ alert("Please fill Title and Date"); return }
+  store.upsertEvent(e); resetEventForm(); renderAll();
+}
+qs("#btnResetEvent").onclick=resetEventForm;
+
+/* =========================
+   TASKS ACTIONS
+   ========================= */
+function resetTaskForm(){ ["tId","tTitle","tAssigned","tNotes"].forEach(id=>qs("#"+id).value=""); qs("#tDue").value=""; qs("#tStatus").value="Not Started"; fillEventSelectors() }
+function editTask(id){
+  const t=store.data.tasks.find(x=>x.id===id); if(!t) return;
+  qs("#tId").value=t.id; qs("#tEvent").value=t.eventId; qs("#tTitle").value=t.title||"";
+  qs("#tDue").value=t.dueDate||""; qs("#tAssigned").value=t.assignedTo||"";
+  qs("#tStatus").value=t.status||"Not Started"; qs("#tNotes").value=t.notes||"";
+  switchTab("tasks");
+}
+function delTask(id){ if(confirm("Delete this task?")){ store.removeTask(id); renderAll() } }
+function completeTask(id){
+  const t=store.data.tasks.find(x=>x.id===id); if(!t) return;
+  t.status="Completed"; t.completedDate=dayjs().format("YYYY-MM-DDTHH:mm");
+  store.upsertTask(t); renderAll();
+}
+qs("#btnAddTask").onclick=()=>{ resetTaskForm(); switchTab("tasks"); qs("#tTitle").focus() }
+qs("#btnSaveTask").onclick=()=>{
+  const t={
+    id: qs("#tId").value.trim()||null,
+    eventId: qs("#tEvent").value,
+    title: qs("#tTitle").value.trim(),
+    dueDate: qs("#tDue").value || "",
+    assignedTo: qs("#tAssigned").value.trim(),
+    status: qs("#tStatus").value,
+    completedDate: "",
+    notes: qs("#tNotes").value.trim(),
+  };
+  if(!t.eventId || !t.title){ alert("Please choose Event and fill Task title"); return }
+  store.upsertTask(t); resetTaskForm(); renderAll();
+}
+qs("#btnResetTask").onclick=resetTaskForm;
+
+/* =========================
+   NOTES ACTIONS
+   ========================= */
+function resetNoteForm(){ ["nId","nNotes","nBy"].forEach(id=>qs("#"+id).value=""); qs("#nRating").value="5"; qs("#nOn").value=dayjs().format("YYYY-MM-DDTHH:mm"); fillEventSelectors() }
+function editNote(id){
+  const n=store.data.notes.find(x=>x.id===id); if(!n) return;
+  qs("#nId").value=n.id; qs("#nEvent").value=n.eventId; qs("#nRating").value=n.rating||"5";
+  qs("#nNotes").value=n.notes||""; qs("#nBy").value=n.createdBy||""; qs("#nOn").value=n.createdOn||dayjs().format("YYYY-MM-DDTHH:mm");
+  switchTab("notes");
+}
+function delNote(id){ if(confirm("Delete this note?")){ store.removeNote(id); renderAll() } }
+qs("#btnAddNote").onclick=()=>{ resetNoteForm(); switchTab("notes"); qs("#nNotes").focus() }
+qs("#btnSaveNote").onclick=()=>{
+  const n={
+    id: qs("#nId").value.trim()||null,
+    eventId: qs("#nEvent").value,
+    rating: Number(qs("#nRating").value),
+    notes: qs("#nNotes").value.trim(),
+    createdBy: qs("#nBy").value.trim(),
+    createdOn: qs("#nOn").value || dayjs().format("YYYY-MM-DDTHH:mm"),
+  };
+  if(!n.eventId){ alert("Please choose Event"); return }
+  store.upsertNote(n); resetNoteForm(); renderAll();
+}
+qs("#btnResetNote").onclick=resetNoteForm;
+
+/* =========================
+   EXPORT / IMPORT
+   ========================= */
+qs("#btnExport").onclick=()=>{
+  const blob=new Blob([JSON.stringify(store.data,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=`event_ops_export_${dayjs().format("YYYYMMDD_HHmm")}.json`; a.click();
+};
+qs("#btnImport").onclick=()=>qs("#fileImport").click();
+qs("#fileImport").addEventListener("change", ev=>{
+  const f=ev.target.files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const json=JSON.parse(reader.result);
+      if(!json.events||!json.tasks||!json.notes) throw new Error("Invalid JSON");
+      store.data=json; store.save(); renderAll(); alert("Import successful!");
+    }catch(e){ alert("Import failed: "+e.message) }
+  };
+  reader.readAsText(f);
+});
+qs("#btnSeed").onclick=()=>{ if(confirm("Load demo data? This overwrites current data.")){ seedDemo(); renderAll() } };
+qs("#btnClear").onclick=()=>{ if(confirm("Clear ALL data?")){ localStorage.removeItem(LS_KEY); store.data={events:[],tasks:[],notes:[]}; renderAll() } };
+
+/* =========================
+   TABS & SHORTCUTS
+   ========================= */
+function switchTab(name){
+  state.currentTab=name;
+  qsa(".tab").forEach(el=>el.style.display="none");
+  qsa(".tab-btn").forEach(el=>el.classList.remove("active"));
+  qs("#"+name).style.display="";
+  qsa(".tab-btn").find(el=>el.dataset.tab===name)?.classList.add("active");
+  if(name==="map") setTimeout(renderMap, 50);
+  if(name==="events") qs("#eTitle").focus();
+  if(name==="tasks") qs("#tTitle").focus();
+  if(name==="notes") qs("#nNotes").focus();
+}
+qsa(".tab-btn").forEach(btn=>btn.onclick=()=>switchTab(btn.dataset.tab));
+
+document.addEventListener("keydown", e=>{
+  if(e.key==="e"||e.key==="E"){ e.preventDefault(); qs("#btnAddEvent").click() }
+  if(e.key==="t"||e.key==="T"){ e.preventDefault(); qs("#btnAddTask").click() }
+  if(e.key==="n"||e.key==="N"){ e.preventDefault(); qs("#btnAddNote").click() }
+  if(e.key==="/"){ e.preventDefault(); switchTab("dashboard"); qs("#fSearch").focus() }
+});
+
+/* =========================
+   INIT
+   ========================= */
+(function init(){
+  store.load();
+  if(!store.data.events.length) seedDemo();
+  fillEventSelectors();
+  renderAll();
+  switchTab("dashboard");
+})();
+function renderAll(){
+  renderKPIs();
+  renderDashTasks();
+  renderEvents();
+  renderTasks();
+  renderNotes();
+  if(state.currentTab==="map") renderMap();
+}
+</script>
+</body>
+</html>
