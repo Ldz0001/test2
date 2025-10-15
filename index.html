@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Event Operations BI — Lavender</title>
+  <title>Event Operations BI — Lavender (Light/Dark)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- Leaflet Map -->
   <link
@@ -16,134 +16,167 @@
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
     crossorigin=""
   ></script>
-  <!-- Icon font -->
+  <!-- Icons + Day.js -->
   <link href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" rel="stylesheet">
-  <!-- Day.js -->
   <script src="https://unpkg.com/dayjs@1.11.11/dayjs.min.js"></script>
   <script src="https://unpkg.com/dayjs@1.11.11/plugin/customParseFormat.js"></script>
   <script>dayjs.extend(dayjs_plugin_customParseFormat)</script>
 
   <style>
     /* =========================
-       LAVENDER THEME
+       THEME VARIABLES
+       Light (default) + Dark
        ========================= */
-    :root{
-      --bg: #161226;            /* deep indigo */
-      --bg-2:#1c1533;
-      --panel:#221a44;          /* panel violet */
-      --card:#1b1437;           /* card base */
-      --border:#3f3cbb;         /* indigo-600 */
-      --glow:#7c3aed22;         /* violet glow */
-      --text:#f5f3ff;           /* lavender-50 */
-      --muted:#d6d3ef;          /* lavender-200 */
-      --accent:#a78bfa;         /* violet-400 */
-      --accent-2:#7c3aed;       /* violet-600 */
-      --accent-3:#c4b5fd;       /* violet-300 */
-      --success:#34d399;        /* teal-400 */
-      --warning:#f59e0b;        /* amber-500 */
-      --danger:#ef4444;         /* red-500 */
-      --overlay: linear-gradient(120deg, #2a215c 0%, #201a4d 40%, #1a163b 100%);
+    :root {
+      /* Light Lavender */
+      --bg: #F6F3FF;           /* page background */
+      --overlay: radial-gradient(900px 500px at -150px -200px, #d8ccff55, transparent 60%), radial-gradient(1000px 600px at 120% -100px, #e9e2ff66, transparent 60%), #F6F3FF;
+      --panel: #FFFFFF;        /* panels / header */
+      --card: #FCFAFF;         /* cards */
+      --border: #E4DDF8;       /* soft lavender border */
+      --text: #1f1b2e;         /* ink */
+      --muted: #6f6794;        /* muted ink */
+      --accent: #7c3aed;       /* violet */
+      --accent-2: #5b21b6;     /* deeper violet */
+      --accent-3: #a78bfa;     /* light violet */
+      --success: #059669;      /* teal */
+      --warning: #d97706;      /* amber */
+      --danger:  #dc2626;      /* red */
+      --table-odd: #F3EEFF;
+      --shadow: 0 8px 28px rgba(72, 50, 154, .08);
+      --glass: rgba(255,255,255,.75);
+      --focus: #c4b5fd77;
+      --pill: #efeaff;
     }
 
-    *{ box-sizing: border-box }
-    html,body{ margin:0; height:100% }
-    body{
-      background:
-        radial-gradient(900px 500px at -150px -200px, #7c3aed22, transparent 60%),
-        radial-gradient(1000px 600px at 120% -100px, #a78bfa1a, transparent 60%),
-        var(--overlay), var(--bg);
+    /* Dark theme overrides */
+    [data-theme="dark"] {
+      --bg: #161226;
+      --overlay: radial-gradient(900px 500px at -150px -200px, #7c3aed22, transparent 60%), radial-gradient(1000px 600px at 120% -100px, #a78bfa1a, transparent 60%), #161226;
+      --panel: #1c1533;
+      --card: #1b1437;
+      --border: #3f3cbb;
+      --text: #f5f3ff;
+      --muted: #d6d3ef;
+      --accent: #a78bfa;
+      --accent-2: #7c3aed;
+      --accent-3: #c4b5fd;
+      --success: #34d399;
+      --warning: #f59e0b;
+      --danger:  #ef4444;
+      --table-odd: #211a4b;
+      --shadow: 0 8px 28px rgba(0,0,0,.45);
+      --glass: rgba(29, 23, 57, .75);
+      --focus: #7c3aed55;
+      --pill: #241d50;
+    }
+
+    * { box-sizing: border-box }
+    html, body { margin: 0; height: 100%; }
+    body {
+      background: var(--overlay);
       color: var(--text);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans";
-      line-height: 1.45;
-      letter-spacing: .2px;
+      line-height: 1.45; letter-spacing: .2px;
     }
 
-    /* Header + Tabs */
-    header{
-      position: sticky; top:0; z-index:20;
+    header {
+      position: sticky; top: 0; z-index: 20;
       backdrop-filter: blur(10px);
-      background: linear-gradient(180deg, #1d1739cc, #1d173980);
+      background: var(--glass);
       border-bottom: 1px solid var(--border);
-      display:flex; align-items:center; justify-content:space-between;
+      display: flex; align-items: center; justify-content: space-between;
       padding: 14px 18px;
     }
-    header h1{ margin:0; font-size:18px; font-weight:800; letter-spacing:.4px }
-    .tabs{ display:flex; gap:8px; flex-wrap:wrap }
-    .tab-btn{
-      background: #1c1637; color: var(--text);
-      border:1px solid #4f46e5; border-color: #4f46e555;
-      padding:8px 12px; font-size:13px; border-radius:12px; cursor:pointer;
-      box-shadow: inset 0 0 0 1px #ffffff10, 0 1px 0 #00000050;
+    header h1 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: .4px; }
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .tab-btn {
+      background: #ffffff; color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 12px; font-size: 13px; border-radius: 12px; cursor: pointer;
+      box-shadow: 0 1px 0 #00000010, inset 0 0 0 1px #ffffff66;
       transition: transform .06s ease, box-shadow .12s ease, border-color .12s ease, background .12s ease;
     }
-    .tab-btn:hover{ border-color:#7c3aedaa; box-shadow: inset 0 0 0 1px #ffffff18, 0 4px 14px #7c3aed22; transform: translateY(-1px)}
-    .tab-btn.active{ background:#251c4f; border-color:#7c3aed; box-shadow: inset 0 0 0 1px #ffffff20, 0 6px 22px #7c3aed33 }
+    [data-theme="dark"] .tab-btn { background: #1c1637; box-shadow: inset 0 0 0 1px #ffffff10, 0 1px 0 #00000050; }
+    .tab-btn:hover { border-color: var(--accent-3); box-shadow: 0 4px 14px rgba(124,58,237,.2); transform: translateY(-1px) }
+    .tab-btn.active { background: #f0eaff; border-color: var(--accent); }
+    [data-theme="dark"] .tab-btn.active { background: #251c4f; }
 
-    main{ padding:18px; max-width:1300px; margin:0 auto 56px }
-
-    /* Cards + Grid */
-    .card{
-      background:
-        radial-gradient(800px 400px at -180px -220px, var(--glow), transparent 60%),
-        linear-gradient(180deg, #1a153a, #150f2b);
-      border:1px solid var(--border);
-      border-radius:16px; padding:14px;
-      box-shadow: 0 8px 28px #00000055, inset 0 1px 0 #ffffff05;
+    .theme-toggle {
+      display: inline-flex; gap: 8px; align-items: center;
+      border: 1px solid var(--border); border-radius: 999px; padding: 6px 10px;
+      background: #ffffff; cursor: pointer;
     }
-    .grid{ display:grid; gap:12px }
-    .grid.kpi{ grid-template-columns: repeat(4, minmax(0, 1fr)) }
-    @media (max-width:1000px){ .grid.kpi{ grid-template-columns: repeat(2,1fr)} }
-    @media (max-width:580px){ .grid.kpi{ grid-template-columns: 1fr } }
-    .card h3{ margin:0 0 6px; font-size:14px; color: var(--muted); font-weight:700; }
-    .kpi .value{ font-size:34px; font-weight:900; margin-top:6px; color: var(--accent-3); text-shadow: 0 0 8px #a78bfa30 }
-
-    /* Layout helpers */
-    .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap }
-    .spacer{ flex:1 }
-    .two{ display:grid; grid-template-columns: 1.8fr 1.2fr; gap:12px }
-    @media (max-width:1100px){ .two{ grid-template-columns:1fr } }
-
-    /* Inputs / Buttons */
-    input, select, textarea, button{
-      background:#1a1538; color:var(--text); border:1px solid #6d28d966;
-      border-radius:12px; padding:9px 12px; font-size:14px;
-      box-shadow: inset 0 0 0 1px #ffffff10;
+    [data-theme="dark"] .theme-toggle { background: #1c1637; }
+    .theme-toggle .dot {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--accent); box-shadow: inset 0 0 0 2px #ffffff50;
     }
-    input:focus, select:focus, textarea:focus{
-      outline:none; border-color:#a78bfa; box-shadow: 0 0 0 3px #a78bfa33, inset 0 0 0 1px #ffffff18
+
+    main { padding: 18px; max-width: 1300px; margin: 0 auto 56px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px; padding: 14px; box-shadow: var(--shadow);
     }
-    textarea{ min-height:100px }
+    .grid { display: grid; gap: 12px; }
+    .grid.kpi { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    @media (max-width: 1000px) { .grid.kpi { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 580px)  { .grid.kpi { grid-template-columns: 1fr; } }
+    .card h3 { margin: 0 0 6px; font-size: 14px; color: var(--muted); font-weight: 700; }
+    .kpi .value { font-size: 34px; font-weight: 900; margin-top: 6px; color: var(--accent-2); text-shadow: 0 0 8px #7c3aed18; }
 
-    button.primary{ background: linear-gradient(180deg, #4328b8, #34218f); border-color:#7c3aed }
-    button.primary:hover{ box-shadow: 0 6px 20px #7c3aed44 }
-    button.ghost{ background: #1a1530; border-color:#6d28d944 }
-    button.success{ background: linear-gradient(180deg, #256f53, #1b4f3b); border-color:#34d399 }
-    button.danger{ background: linear-gradient(180deg, #6b1f28, #531821); border-color:#ef4444 }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .spacer { flex: 1; }
+    .two { display: grid; grid-template-columns: 1.8fr 1.2fr; gap: 12px; }
+    @media (max-width: 1100px) { .two { grid-template-columns: 1fr; } }
 
-    /* Tables */
-    .table-wrap{ overflow:auto; border-radius:12px; border:1px solid var(--border) }
-    table{ width:100%; border-collapse:collapse }
-    th,td{ padding:10px 12px; border-bottom:1px solid #302b67; font-size:13px }
-    th{ text-align:left; color:#d6d3ef; background:#1a163b; position:sticky; top:0; z-index:1 }
-    tr:hover td{ background:#211a4b }
+    input, select, textarea, button {
+      background: #ffffff; color: var(--text); border: 1px solid var(--border);
+      border-radius: 12px; padding: 9px 12px; font-size: 14px; box-shadow: inset 0 0 0 1px #ffffffcc;
+    }
+    [data-theme="dark"] input, [data-theme="dark"] select, [data-theme="dark"] textarea, [data-theme="dark"] button { background: #1a1538; box-shadow: inset 0 0 0 1px #ffffff10; color: var(--text); }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent-3); box-shadow: 0 0 0 3px var(--focus), inset 0 0 0 1px #ffffff80; }
+    textarea { min-height: 100px; }
 
-    /* Status / Pills */
-    .status{ padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid #6d28d955 }
-    .s-planning{ background:#291f5f; color:#c4b5fd }
-    .s-executing{ background:#1f215f; color:#a5b4fc }
-    .s-completed{ background:#1c2f2a; color:#86efac; border-color:#34d39966 }
-    .s-overdue{ background:#3a1820; color:#fecaca; border-color:#ef444466 }
-    .pill{ padding:3px 8px; border-radius:999px; border:1px solid #6d28d955; font-size:12px; background:#241d50; color:#ddd5ff }
+    button.primary { background: linear-gradient(180deg, #9f7aea, #7c3aed); color: #fff; border-color: var(--accent); }
+    button.primary:hover { box-shadow: 0 6px 20px rgba(124,58,237,.35); }
+    button.ghost   { background: #f8f6ff; }
+    [data-theme="dark"] button.ghost { background: #1a1530; }
+    button.success { background: linear-gradient(180deg, #10b981, #059669); color: #fff; border-color: #10b981; }
+    button.danger  { background: linear-gradient(180deg, #ef4444, #b91c1c); color: #fff; border-color: #ef4444; }
 
-    .muted{ color:var(--muted) }
-    .hr{ height:1px; background:#3f3cbb88; margin:12px 0 }
-    .legend{ display:flex; gap:8px; align-items:center; flex-wrap:wrap }
-    .legend span{ display:inline-flex; gap:6px; align-items:center }
-    .small{ font-size:12px; color:var(--muted) }
-    .kbd{ background:#231d52; border:1px solid #6d28d966; border-bottom-width:2px; padding:2px 6px; border-radius:6px; font-size:12px }
+    .table-wrap { overflow: auto; border-radius: 12px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+    th { text-align: left; color: var(--muted); background: #f5f0ff; position: sticky; top: 0; z-index: 1; }
+    [data-theme="dark"] th { background: #1a163b; color: #d6d3ef; }
+    tbody tr:nth-child(odd) td { background: var(--table-odd); }
+    [data-theme="dark"] tbody tr:nth-child(odd) td { background: var(--table-odd); }
+    tr:hover td { background: #efe8ff; }
+    [data-theme="dark"] tr:hover td { background: #211a4b; }
 
-    /* Map */
-    .map{ height:420px; border-radius:12px; border:1px solid var(--border); overflow:hidden }
+    .status { padding: 2px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--border); }
+    .s-planning  { background: #ede9fe; color: #5b21b6; }
+    .s-executing { background: #e0e7ff; color: #3730a3; }
+    .s-completed { background: #e6f9f2; color: #065f46; border-color: #10b98166; }
+    .s-overdue   { background: #fee2e2; color: #991b1b; border-color: #ef444466; }
+    [data-theme="dark"] .s-planning  { background: #291f5f; color: #c4b5fd; }
+    [data-theme="dark"] .s-executing { background: #1f215f; color: #a5b4fc; }
+    [data-theme="dark"] .s-completed { background: #1c2f2a; color: #86efac; }
+    [data-theme="dark"] .s-overdue   { background: #3a1820; color: #fecaca; }
+
+    .pill { padding: 3px 8px; border-radius: 999px; border: 1px solid var(--border); font-size: 12px; background: var(--pill); color: var(--text); }
+    .muted { color: var(--muted); }
+    .hr { height: 1px; background: var(--border); margin: 12px 0; }
+    .legend { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .legend span { display: inline-flex; gap: 6px; align-items: center; }
+    .small { font-size: 12px; color: var(--muted); }
+    .kbd { background: #ede9fe; border: 1px solid var(--border); border-bottom-width: 2px; padding: 2px 6px; border-radius: 6px; font-size: 12px; }
+    [data-theme="dark"] .kbd { background: #231d52; border-color: #6d28d966; }
+
+    .map { height: 420px; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
   </style>
 </head>
 <body>
@@ -157,6 +190,9 @@
     <button class="tab-btn" data-tab="map">Map</button>
     <button class="tab-btn" data-tab="settings">Settings</button>
   </div>
+  <button id="themeToggle" class="theme-toggle" title="Toggle theme">
+    <span class="dot"></span><span id="themeLabel" class="small">Light</span>
+  </button>
 </header>
 
 <main>
@@ -327,6 +363,29 @@
 </main>
 
 <script>
+/* =========================
+   THEME TOGGLE (persisted)
+   ========================= */
+const THEME_KEY = "eventOpsTheme";
+function applyTheme(theme){
+  if(theme === "dark"){ document.body.setAttribute("data-theme","dark"); document.getElementById("themeLabel").textContent="Dark"; }
+  else { document.body.removeAttribute("data-theme"); document.getElementById("themeLabel").textContent="Light"; }
+  localStorage.setItem(THEME_KEY, theme);
+}
+(function initTheme(){
+  const saved = localStorage.getItem(THEME_KEY);
+  if(saved){ applyTheme(saved); }
+  else {
+    // Respect OS preference on first visit
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyTheme(prefersDark ? "dark" : "light");
+  }
+})();
+document.getElementById("themeToggle").addEventListener("click", ()=>{
+  const isDark = document.body.getAttribute("data-theme") === "dark";
+  applyTheme(isDark ? "light" : "dark");
+});
+
 /* =========================
    DATA LAYER (localStorage)
    ========================= */
@@ -552,25 +611,29 @@ qs("#btnClearFilters").onclick=()=>{ ["fSearch","fType","fStatus","fFrom","fTo"]
 /* =========================
    MAP
    ========================= */
+let mapInitDone=false;
 function initMap(){
-  if(state.map) return;
-  state.map = L.map('leafletMap').setView([23.6345,-102.5528],5);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'&copy; OpenStreetMap'}).addTo(state.map);
+  if(mapInitDone) return;
+  const mapEl = document.getElementById('leafletMap');
+  const m = L.map(mapEl).setView([23.6345,-102.5528],5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'&copy; OpenStreetMap'}).addTo(m);
+  window._map = m; window._markers = [];
+  mapInitDone = true;
 }
-function clearMarkers(){ state.markers.forEach(m=>state.map.removeLayer(m)); state.markers=[] }
+function clearMarkers(){ (window._markers||[]).forEach(m=>window._map.removeLayer(m)); window._markers=[] }
 function renderMap(){
   initMap(); clearMarkers();
   const evs = applyFiltersToEvents().filter(e=>e.lat && e.lon);
   evs.forEach(e=>{
-    const m=L.marker([e.lat,e.lon]).addTo(state.map);
-    m.bindPopup(`<b>${e.title}</b><br>${e.eventType} — ${fmtDate(e.eventDate)}<br>${e.city||""}, ${e.state||""}<br>Status: ${e.status}`);
-    state.markers.push(m);
+    const mrk=L.marker([e.lat,e.lon]).addTo(window._map);
+    mrk.bindPopup(`<b>${e.title}</b><br>${e.eventType} — ${fmtDate(e.eventDate)}<br>${e.city||""}, ${e.state||""}<br>Status: ${e.status}`);
+    window._markers.push(mrk);
   });
-  if(evs.length){ const group = new L.featureGroup(state.markers); state.map.fitBounds(group.getBounds().pad(0.2)); }
+  if(evs.length){ const group = new L.featureGroup(window._markers); window._map.fitBounds(group.getBounds().pad(0.2)); }
 }
 
 /* =========================
-   EVENTS ACTIONS
+   EVENTS / TASKS / NOTES ACTIONS
    ========================= */
 function resetEventForm(){ ["eId","eTitle","eCity","eState","eOwner","eLat","eLon"].forEach(id=>qs("#"+id).value=""); qs("#eType").value="Wedding"; qs("#eStatus").value="Planning"; qs("#eDate").value="" }
 function editEvent(id){
@@ -601,9 +664,6 @@ qs("#btnSaveEvent").onclick=()=>{
 }
 qs("#btnResetEvent").onclick=resetEventForm;
 
-/* =========================
-   TASKS ACTIONS
-   ========================= */
 function resetTaskForm(){ ["tId","tTitle","tAssigned","tNotes"].forEach(id=>qs("#"+id).value=""); qs("#tDue").value=""; qs("#tStatus").value="Not Started"; fillEventSelectors() }
 function editTask(id){
   const t=store.data.tasks.find(x=>x.id===id); if(!t) return;
@@ -635,9 +695,6 @@ qs("#btnSaveTask").onclick=()=>{
 }
 qs("#btnResetTask").onclick=resetTaskForm;
 
-/* =========================
-   NOTES ACTIONS
-   ========================= */
 function resetNoteForm(){ ["nId","nNotes","nBy"].forEach(id=>qs("#"+id).value=""); qs("#nRating").value="5"; qs("#nOn").value=dayjs().format("YYYY-MM-DDTHH:mm"); fillEventSelectors() }
 function editNote(id){
   const n=store.data.notes.find(x=>x.id===id); if(!n) return;
